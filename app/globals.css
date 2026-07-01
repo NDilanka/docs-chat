@@ -1,0 +1,233 @@
+/* Base reset + design tokens. The chat UI styles live in components/chat.module.css.
+   (The UI build step may extend this file.) */
+:root {
+  --bg: #0b0e14;
+  --panel: #111726;
+  --panel-2: #0f1421;
+  --border: #1f2937;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --accent: #6ee7b7;
+  --accent-2: #38bdf8;
+  --danger: #f87171;
+  --radius: 12px;
+  --maxw: 860px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+}
+
+a {
+  color: var(--accent-2);
+}
+
+/* ------------------------------------------------------------------------- *
+ * Page chrome (app/page.tsx). The chat card itself lives in
+ * components/chat.module.css. These classes style the product page around it.
+ * ------------------------------------------------------------------------- */
+
+.page {
+  min-height: 100dvh;
+  padding: 56px 20px 72px;
+  background:
+    radial-gradient(
+      900px 480px at 50% -10%,
+      rgba(56, 189, 248, 0.12),
+      transparent 60%
+    ),
+    radial-gradient(
+      700px 420px at 85% 8%,
+      rgba(110, 231, 183, 0.08),
+      transparent 55%
+    );
+}
+
+.pageInner {
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 13px;
+  margin-bottom: 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badgeDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+.title {
+  margin: 0 0 10px;
+  font-size: clamp(2rem, 5vw, 2.9rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  background: linear-gradient(95deg, #ffffff 10%, var(--accent) 60%, var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  margin: 0 auto;
+  max-width: 520px;
+  color: var(--muted);
+  font-size: 1.02rem;
+}
+
+/* ---- how it works ------------------------------------------------------- */
+.how {
+  margin-top: 40px;
+  padding: 26px 24px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+}
+
+.howTitle {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.howLead {
+  margin: 0 0 20px;
+  max-width: 640px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.pipeline {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pstep {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 150px;
+  padding: 11px 13px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+/* connecting arrow between steps */
+.pstep:not(:last-child)::after {
+  content: "→";
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--border);
+  font-size: 0.85rem;
+  z-index: 1;
+}
+
+.pnum {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #06210f;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+
+.pbody {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pname {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pdetail {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.howNote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.howNote strong {
+  color: var(--text);
+}
+
+/* ---- footer ------------------------------------------------------------- */
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.footSep {
+  color: var(--border);
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 36px 14px 56px;
+  }
+  .pstep:not(:last-child)::after {
+    display: none;
+  }
+}

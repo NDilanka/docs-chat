@@ -1,0 +1,534 @@
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import type { StreamEvent, SourceRef, CitationRef } from "@/lib/types";
+import styles from "./chat.module.css";
+
+// ---------------------------------------------------------------------------
+// Local view model. One `Turn` = a user question + its grounded answer, plus
+// the sources it was grounded in and the citations the model emitted.
+// ---------------------------------------------------------------------------
+
+type TurnStatus = "streaming" | "done" | "error";
+
+interface Turn {
+  id: string;
+  question: string;
+  answer: string;
+  sources: SourceRef[];
+  citations: CitationRef[];
+  status: TurnStatus;
+  error?: string;
+}
+
+// Suggested questions for the empty state. The first three fit a SaaS
+// help-center corpus (billing, a feature, security); the fourth is
+// deliberately off-corpus to show the honest "I don't know" behavior.
+const SUGGESTIONS: { q: string; offTopic?: boolean }[] = [
+  { q: "What pricing plans are available and how does billing work?" },
+  { q: "How do I invite teammates to my workspace?" },
+  { q: "How do you keep my data secure?" },
+  { q: "What's the weather like in Tokyo today?", offTopic: true },
+];
+
+function newId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2);
+}
+
+export default function Chat() {
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [input, setInput] = useState("");
+  const [streaming, setStreaming] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [activeSource, setActiveSource] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const threadRef = useRef<HTMLDivElement>(null);
+  const pinnedRef = useRef(true);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // ---- update a single turn immutably -------------------------------------
+  const patchTurn = useCallback(
+    (id: string, fn: (t: Turn) => Turn) => {
+      setTurns((prev) => prev.map((t) => (t.id === id ? fn(t) : t)));
+    },
+    [],
+  );
+
+  const handleEvent = useCallback(
+    (turnId: string, ev: StreamEvent) => {
+      switch (ev.type) {
+        case "sources":
+          patchTurn(turnId, (t) => ({ ...t, sources: ev.sources }));
+          break;
+        case "text":
+          patchTurn(turnId, (t) => ({ ...t, answer: t.answer + ev.text }));
+          break;
+        case "citation":
+          patchTurn(turnId, (t) => ({
+            ...t,
+            citations: [...t.citations, ev.citation],
+          }));
+          break;
+        case "done":
+          patchTurn(turnId, (t) =>
+            t.status === "error" ? t : { ...t, status: "done" },
+          );
+          break;
+        case "error":
+          patchTurn(turnId, (t) => ({
+            ...t,
+            status: "error",
+            error: ev.message,
+          }));
+          setToast(ev.message);
+          break;
+      }
+    },
+    [patchTurn],
+  );
+
+  // ---- the streaming request ----------------------------------------------
+  const ask = useCallback(
+    async (raw: string) => {
+      const question = raw.trim();
+      if (!question || streaming) return;
+
+      const turnId = newId();
+      setTurns((prev) => [
+        ...prev,
+        {
+          id: turnId,
+          question,
+          answer: "",
+          sources: [],
+          citations: [],
+          status: "streaming",
+        },
+      ]);
+      setInput("");
+      setStreaming(true);
+      pinnedRef.current = true;
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question }),
+        });
+
+        if (!res.ok || !res.body) {
+          const detail = await res.text().catch(() => "");
+          throw new Error(
+            detail.trim() || `Request failed (${res.status})`,
+          );
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        // Read the NDJSON stream. Buffer partial lines: split on "\n" and keep
+        // the trailing incomplete fragment for the next chunk.
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const lineRaw of lines) {
+            const lineStr = lineRaw.trim();
+            if (!lineStr) continue;
+            let ev: StreamEvent;
+            try {
+              ev = JSON.parse(lineStr) as StreamEvent;
+            } catch {
+              continue; // skip a malformed line rather than abort the stream
+            }
+            handleEvent(turnId, ev);
+          }
+        }
+
+        // Flush a final line that wasn't newline-terminated.
+        const tail = buffer.trim();
+        if (tail) {
+          try {
+            handleEvent(turnId, JSON.parse(tail) as StreamEvent);
+          } catch {
+            /* ignore trailing noise */
+          }
+        }
+
+        // Safety net: if the stream ended without an explicit "done".
+        patchTurn(turnId, (t) =>
+          t.status === "streaming" ? { ...t, status: "done" } : t,
+        );
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Something went wrong";
+        patchTurn(turnId, (t) => ({ ...t, status: "error", error: message }));
+        setToast(message);
+      } finally {
+        setStreaming(false);
+      }
+    },
+    [streaming, handleEvent, patchTurn],
+  );
+
+  // ---- jump from a citation chip to its source ----------------------------
+  const jumpToSource = useCallback((turnId: string, index: number) => {
+    setCollapsed((prev) => ({ ...prev, [turnId]: false }));
+    const key = `${turnId}:${index}`;
+    setActiveSource(key);
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`src-${turnId}-${index}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }, []);
+
+  // clear the highlight after a moment
+  useEffect(() => {
+    if (!activeSource) return;
+    const t = setTimeout(() => setActiveSource(null), 2200);
+    return () => clearTimeout(t);
+  }, [activeSource]);
+
+  // auto-dismiss the error toast
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // keep the thread pinned to the bottom while streaming, unless the user
+  // has scrolled up to read something.
+  useEffect(() => {
+    const el = threadRef.current;
+    if (el && pinnedRef.current) el.scrollTop = el.scrollHeight;
+  }, [turns]);
+
+  const onThreadScroll = useCallback(() => {
+    const el = threadRef.current;
+    if (!el) return;
+    pinnedRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 96;
+  }, []);
+
+  // auto-grow the composer textarea
+  const onInput = useCallback((value: string) => {
+    setInput(value);
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+    }
+  }, []);
+
+  const onKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (!streaming) {
+          const el = textareaRef.current;
+          if (el) el.style.height = "auto";
+          void ask(input);
+        }
+      }
+    },
+    [ask, input, streaming],
+  );
+
+  const isEmpty = turns.length === 0;
+
+  return (
+    <section className={styles.wrap} aria-label="Chat with the docs">
+      <header className={styles.bar}>
+        <span className={styles.barDot} aria-hidden />
+        <span className={styles.barTitle}>Docs assistant</span>
+        <span className={styles.barHint}>grounded · cited · streaming</span>
+      </header>
+
+      <div
+        className={styles.thread}
+        ref={threadRef}
+        onScroll={onThreadScroll}
+        role="log"
+        aria-live="polite"
+      >
+        {isEmpty ? (
+          <div className={styles.empty}>
+            <div className={styles.emptyGlow} aria-hidden />
+            <h2 className={styles.emptyTitle}>Ask the docs anything</h2>
+            <p className={styles.emptySub}>
+              Answers are grounded in the documentation and every claim links
+              back to its source. Try one of these:
+            </p>
+            <div className={styles.suggestions}>
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s.q}
+                  type="button"
+                  className={
+                    s.offTopic
+                      ? `${styles.suggestion} ${styles.suggestionOff}`
+                      : styles.suggestion
+                  }
+                  onClick={() => ask(s.q)}
+                  disabled={streaming}
+                >
+                  {s.offTopic && (
+                    <span className={styles.offBadge}>off-topic</span>
+                  )}
+                  <span>{s.q}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <ol className={styles.turns}>
+            {turns.map((turn) => (
+              <li key={turn.id} className={styles.turn}>
+                {/* question */}
+                <div className={`${styles.row} ${styles.rowUser}`}>
+                  <div className={`${styles.bubble} ${styles.bubbleUser}`}>
+                    {turn.question}
+                  </div>
+                </div>
+
+                {/* answer */}
+                <div className={`${styles.row} ${styles.rowBot}`}>
+                  <div className={styles.avatar} aria-hidden>
+                    AI
+                  </div>
+                  <div className={styles.botCol}>
+                    <div
+                      className={`${styles.bubble} ${styles.bubbleBot}${
+                        turn.status === "error" ? ` ${styles.bubbleErr}` : ""
+                      }`}
+                    >
+                      {turn.status === "streaming" && !turn.answer ? (
+                        <Typing />
+                      ) : turn.status === "error" ? (
+                        <span className={styles.errText}>
+                          {turn.error ?? "Something went wrong."}
+                        </span>
+                      ) : (
+                        <>
+                          {turn.answer}
+                          {turn.status === "streaming" && (
+                            <span className={styles.caret} aria-hidden />
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* citation chips */}
+                    {turn.citations.length > 0 && (
+                      <div
+                        className={styles.chips}
+                        aria-label="Citations"
+                      >
+                        <span className={styles.chipsLabel}>Citations</span>
+                        {turn.citations.map((c, i) => (
+                          <button
+                            key={`${turn.id}-cit-${i}`}
+                            type="button"
+                            className={styles.chip}
+                            onClick={() =>
+                              jumpToSource(turn.id, c.documentIndex)
+                            }
+                            title={c.citedText}
+                          >
+                            <span className={styles.chipNum}>
+                              {c.documentIndex + 1}
+                            </span>
+                            <span className={styles.chipSrc}>{c.source}</span>
+                            <span className={styles.chipTip}>
+                              <span className={styles.chipTipSrc}>
+                                {c.source}
+                              </span>
+                              “{c.citedText}”
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* sources panel */}
+                    {turn.sources.length > 0 && (
+                      <div className={styles.sources}>
+                        <button
+                          type="button"
+                          className={styles.sourcesHead}
+                          onClick={() =>
+                            setCollapsed((prev) => ({
+                              ...prev,
+                              [turn.id]: !(prev[turn.id] ?? false),
+                            }))
+                          }
+                          aria-expanded={!(collapsed[turn.id] ?? false)}
+                        >
+                          <span
+                            className={`${styles.caretIcon}${
+                              collapsed[turn.id] ? ` ${styles.caretClosed}` : ""
+                            }`}
+                            aria-hidden
+                          >
+                            ▾
+                          </span>
+                          Sources
+                          <span className={styles.sourcesCount}>
+                            {turn.sources.length}
+                          </span>
+                        </button>
+
+                        {!(collapsed[turn.id] ?? false) && (
+                          <ul className={styles.sourceList}>
+                            {turn.sources.map((s) => {
+                              const isActive =
+                                activeSource === `${turn.id}:${s.index}`;
+                              return (
+                                <li
+                                  key={`${turn.id}-src-${s.index}`}
+                                  id={`src-${turn.id}-${s.index}`}
+                                  className={`${styles.source}${
+                                    isActive ? ` ${styles.sourceActive}` : ""
+                                  }`}
+                                >
+                                  <span className={styles.sourceIndex}>
+                                    {s.index + 1}
+                                  </span>
+                                  <div className={styles.sourceBody}>
+                                    <div className={styles.sourceTop}>
+                                      {s.url ? (
+                                        <a
+                                          className={styles.sourceTitle}
+                                          href={s.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          {s.source}
+                                        </a>
+                                      ) : (
+                                        <span className={styles.sourceTitle}>
+                                          {s.source}
+                                        </span>
+                                      )}
+                                      {s.headingPath && (
+                                        <span className={styles.sourceCrumb}>
+                                          {s.headingPath}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className={styles.sourceText}>
+                                      {s.text}
+                                    </p>
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
+      {/* composer */}
+      <div className={styles.composer}>
+        <textarea
+          ref={textareaRef}
+          className={styles.input}
+          value={input}
+          onChange={(e) => onInput(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="Ask a question about the docs…"
+          rows={1}
+          disabled={streaming}
+          aria-label="Your question"
+        />
+        <button
+          type="button"
+          className={styles.send}
+          onClick={() => ask(input)}
+          disabled={streaming || !input.trim()}
+          aria-label="Send"
+        >
+          {streaming ? (
+            <span className={styles.spinner} aria-hidden />
+          ) : (
+            <SendIcon />
+          )}
+        </button>
+      </div>
+
+      {/* error toast */}
+      {toast && (
+        <div className={styles.toast} role="alert">
+          <span className={styles.toastIcon} aria-hidden>
+            !
+          </span>
+          <span className={styles.toastMsg}>{toast}</span>
+          <button
+            type="button"
+            className={styles.toastClose}
+            onClick={() => setToast(null)}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Typing() {
+  return (
+    <span className={styles.typing} aria-label="Assistant is thinking">
+      <span className={styles.typingHint}>Retrieving &amp; grounding</span>
+      <span className={styles.dots} aria-hidden>
+        <span className={styles.dot} />
+        <span className={styles.dot} />
+        <span className={styles.dot} />
+      </span>
+    </span>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+    >
+      <path
+        d="M4 12L20 4L13 20L11 13L4 12Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
