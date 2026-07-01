@@ -40,7 +40,7 @@ product" beat.)*
 click it → the sources panel scrolls to and **highlights the matching passage**.
 
 > "Every claim is grounded. Here's the source it used — click the citation and
-> it jumps straight to the exact passage. This is verifiable, not a guess."
+> it jumps straight to the passage it came from. You can check it, not just trust it."
 
 ---
 
@@ -57,12 +57,12 @@ today?"*) or type something clearly outside the corpus.
 ### 5 · The integration beat — (1:05–1:20)
 
 **On screen:** flash the code, three quick frames — `lib/retrieval.ts`
-(`cosineTopK`), the Anthropic `document`-blocks-with-citations call in
-`app/api/chat/route.ts`, and the streaming `<Chat />` component.
+(`cosineTopK`), the numbered-sources + `[n]`-citation mapping in
+`lib/generation.ts`, and the streaming `<Chat />` component.
 
 > "Under the hood: embeddings, cosine retrieval, grounded generation with
-> Claude's native citations, and a streaming route — all production-ready,
-> inside your existing React and Next app."
+> inline source citations, and a streaming route — all production-ready and
+> model-agnostic, inside your existing React and Next app."
 
 ---
 

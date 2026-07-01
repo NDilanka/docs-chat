@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { embedQuery } from "@/lib/embeddings";
 import { cosineTopK } from "@/lib/retrieval";
-import { streamAnswer } from "@/lib/anthropic";
+import { streamAnswer } from "@/lib/generation";
 import { TOP_K, MAX_QUESTION_LEN } from "@/lib/config";
 import type { IndexEntry, StreamEvent, SourceRef, ChatRequest } from "@/lib/types";
 
@@ -65,33 +65,13 @@ export async function POST(req: Request) {
         }));
         controller.enqueue(line({ type: "sources", sources }));
 
-        // 3. Stream the grounded answer; forward text + citation deltas.
-        const ai = streamAnswer(question, retrieved);
-        for await (const event of ai) {
-          if (event.type !== "content_block_delta") continue;
-          // The SDK's delta union doesn't narrow citations_delta cleanly across versions,
-          // so we read it defensively.
-          const delta = event.delta as {
-            type: string;
-            text?: string;
-            citation?: { cited_text?: string; document_index?: number };
-          };
-          if (delta.type === "text_delta" && delta.text) {
-            controller.enqueue(line({ type: "text", text: delta.text }));
-          } else if (delta.type === "citations_delta" && delta.citation) {
-            const di = delta.citation.document_index ?? 0;
-            const src = retrieved[di];
-            controller.enqueue(
-              line({
-                type: "citation",
-                citation: {
-                  citedText: delta.citation.cited_text ?? "",
-                  documentIndex: di,
-                  source: src?.source ?? "",
-                  url: src?.url,
-                },
-              }),
-            );
+        // 3. Stream the grounded answer; forward text + citation events.
+        // generation.ts already maps the model's inline [n] markers to CitationRefs.
+        for await (const event of streamAnswer(question, retrieved)) {
+          if (event.type === "text") {
+            controller.enqueue(line({ type: "text", text: event.text }));
+          } else {
+            controller.enqueue(line({ type: "citation", citation: event.citation }));
           }
         }
 

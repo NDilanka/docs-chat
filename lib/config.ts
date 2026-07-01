@@ -1,16 +1,29 @@
-// Central config. Swapping the generation model is a one-line change here.
+// Central config. Both providers are OpenAI-compatible, so the whole app talks to
+// them through the one `openai` SDK — only the base URL and model string change.
 
+// --- Generation: OpenRouter (free tier, no credit card) --------------------
+/** OpenAI-compatible base URL for OpenRouter. Uses OPENROUTER_API_KEY. */
+export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 /**
- * Generation model. Default is the most capable Opus tier.
- * Cost/latency levers (swap the string, nothing else changes):
- *   - "claude-sonnet-4-6"  ($3 / $15 per 1M tok) — faster, cheaper, great for grounded Q&A
- *   - "claude-haiku-4-5"   ($1 / $5  per 1M tok) — cheapest, fine for short factual answers
+ * Generation model. Must be a **free** OpenRouter model (the `:free` suffix).
+ * Swap the string, nothing else changes:
+ *   - "nousresearch/hermes-3-llama-3.1-405b:free" (default) — Nous Hermes, 131K ctx
+ *   - "meta-llama/llama-3.3-70b-instruct:free"              — Llama 3.3
+ * Free models are rate-limited (~20 req/min, ~200 req/day) and IDs rotate —
+ * see https://openrouter.ai/collections/free-models if one 404s.
  */
-export const GEN_MODEL = "claude-opus-4-8";
+export const GEN_MODEL = "nousresearch/hermes-3-llama-3.1-405b:free";
 
-/** OpenAI embedding model (1536-dim, cheap, hosted). */
-export const EMBED_MODEL = "text-embedding-3-small";
+// --- Embeddings: Google Gemini (free tier, no credit card) ------------------
+// OpenRouter/Nous embeddings cost credits; Anthropic has no embeddings endpoint.
+// Gemini's free tier exposes an OpenAI-compatible embeddings endpoint.
+/** OpenAI-compatible base URL for the Gemini API. Uses GEMINI_API_KEY. */
+export const GEMINI_BASE_URL =
+  "https://generativelanguage.googleapis.com/v1beta/openai/";
+/** Gemini embedding model (default 3072-dim; retrieval is dimension-agnostic). */
+export const EMBED_MODEL = "gemini-embedding-001";
 
+// --- Retrieval + limits -----------------------------------------------------
 /** How many chunks to retrieve and ground the answer in. */
 export const TOP_K = 5;
 
