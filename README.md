@@ -1,7 +1,7 @@
 # Chat with your docs — grounded RAG demo
 
 A production-style **"chat with your docs"** feature, built as a single React
-component dropped into an otherwise ordinary **Next.js 15 (App Router)** app.
+component dropped into an otherwise ordinary **Next.js 16 (App Router)** app.
 Ask a natural-language question, watch the answer **stream in live**, and click
 any **citation** to jump to the exact source passage it came from. Questions
 outside the documents are answered honestly — *no hallucinations.*
@@ -73,7 +73,7 @@ The client buffers partial lines (split on `\n`, keep the trailing fragment),
 
 ## Setup
 
-Prerequisites: **Node 18.18+** and the two API keys below.
+Prerequisites: **Node 20+** and the two API keys below.
 
 ```bash
 # 1. Configure secrets
@@ -159,5 +159,5 @@ grounding, the chat UI, the citation rendering — ships unchanged.
 
 ## Tech
 
-Next.js 15 (App Router) · React · TypeScript · Anthropic Claude (native
+Next.js 16 (App Router) · React 19 · TypeScript · Anthropic Claude (native
 Citations) · OpenAI embeddings · plain CSS modules · Vercel.

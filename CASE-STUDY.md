@@ -19,7 +19,7 @@ has to fit the **existing React/Next codebase**, not replace it.
 ## Approach
 
 I built a grounded Retrieval-Augmented Generation pipeline where the chat is one
-self-contained component on an otherwise ordinary Next.js 15 page:
+self-contained component on an otherwise ordinary Next.js 16 page:
 
 - **Ingest & chunk.** The corpus is loaded and split into ~600-token chunks with
   80-token overlap, preserving each chunk's source title, URL, and heading path.
@@ -55,5 +55,5 @@ store, with the route handler and UI untouched.
 
 ## Stack
 
-Next.js 15 (App Router) · React · TypeScript · Anthropic Claude API (native
+Next.js 16 (App Router) · React 19 · TypeScript · Anthropic Claude API (native
 Citations) · OpenAI embeddings · plain CSS modules · Vercel.
