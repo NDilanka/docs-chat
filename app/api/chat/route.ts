@@ -3,6 +3,7 @@ import path from "path";
 import { embedQuery } from "@/lib/embeddings";
 import { cosineTopK } from "@/lib/retrieval";
 import { streamAnswer } from "@/lib/generation";
+import { runGuards } from "@/lib/guards";
 import { TOP_K, MAX_QUESTION_LEN } from "@/lib/config";
 import type { IndexEntry, StreamEvent, SourceRef, ChatRequest } from "@/lib/types";
 
@@ -36,6 +37,16 @@ export async function POST(req: Request) {
   if (!question) return new Response("Missing 'question'", { status: 400 });
   if (question.length > MAX_QUESTION_LEN) {
     return new Response("Question too long", { status: 413 });
+  }
+
+  // Abuse guards run BEFORE any embedding/generation call so a flood of traffic
+  // can't run up the provider bill. On any limit, return a friendly JSON error.
+  const verdict = await runGuards(req, body?.turnstileToken);
+  if (!verdict.ok) {
+    return Response.json(
+      { error: verdict.error, message: verdict.message },
+      { status: verdict.status },
+    );
   }
 
   let index: IndexEntry[];

@@ -44,6 +44,30 @@ function newId(): string {
   return Math.random().toString(36).slice(2);
 }
 
+// Cloudflare Turnstile is fully env-gated: the widget only renders when a site
+// key is configured. Inlined at build time by Next for client bundles.
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
+interface TurnstileAPI {
+  render: (
+    el: HTMLElement,
+    opts: {
+      sitekey: string;
+      callback: (token: string) => void;
+      "expired-callback"?: () => void;
+      "error-callback"?: () => void;
+      theme?: "auto" | "light" | "dark";
+    },
+  ) => string;
+  reset: (id?: string) => void;
+  remove: (id?: string) => void;
+}
+
+function getTurnstile(): TurnstileAPI | undefined {
+  if (typeof window === "undefined") return undefined;
+  return (window as unknown as { turnstile?: TurnstileAPI }).turnstile;
+}
+
 export default function Chat() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState("");
@@ -51,6 +75,8 @@ export default function Chat() {
   const [toast, setToast] = useState<string | null>(null);
   const [activeSource, setActiveSource] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileWidgetRef = useRef<string | null>(null);
 
   const threadRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef(true);
@@ -123,13 +149,26 @@ export default function Chat() {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question }),
+          body: JSON.stringify({
+            question,
+            ...(turnstileToken ? { turnstileToken } : {}),
+          }),
         });
 
         if (!res.ok || !res.body) {
+          // The guard layer replies with JSON { error, message } (e.g. a 429
+          // "cooling_down"). Surface the friendly message as a notice rather
+          // than a raw error string.
           const detail = await res.text().catch(() => "");
+          let friendly = "";
+          try {
+            const parsed = JSON.parse(detail) as { message?: string };
+            if (parsed?.message) friendly = parsed.message;
+          } catch {
+            /* not JSON — fall back to the raw text below */
+          }
           throw new Error(
-            detail.trim() || `Request failed (${res.status})`,
+            friendly || detail.trim() || `Request failed (${res.status})`,
           );
         }
 
@@ -181,9 +220,18 @@ export default function Chat() {
         setToast(message);
       } finally {
         setStreaming(false);
+        // Turnstile tokens are single-use — reset the widget so the next
+        // request gets a fresh one.
+        if (TURNSTILE_SITE_KEY) {
+          const api = getTurnstile();
+          if (api && turnstileWidgetRef.current) {
+            api.reset(turnstileWidgetRef.current);
+          }
+          setTurnstileToken(null);
+        }
       }
     },
-    [streaming, handleEvent, patchTurn],
+    [streaming, handleEvent, patchTurn, turnstileToken],
   );
 
   // ---- jump from a citation chip to its source ----------------------------
@@ -451,6 +499,19 @@ export default function Chat() {
         )}
       </div>
 
+      {/* Turnstile widget — only rendered when a site key is configured. */}
+      {TURNSTILE_SITE_KEY && (
+        <div className={styles.turnstile}>
+          <Turnstile
+            siteKey={TURNSTILE_SITE_KEY}
+            onToken={setTurnstileToken}
+            onReady={(id) => {
+              turnstileWidgetRef.current = id;
+            }}
+          />
+        </div>
+      )}
+
       {/* composer */}
       <div className={styles.composer}>
         <textarea
@@ -498,6 +559,69 @@ export default function Chat() {
       )}
     </section>
   );
+}
+
+// Loads the Cloudflare Turnstile script once and renders an explicit widget.
+// Reports the widget id up (for reset) and the solved token up (for the request).
+function Turnstile({
+  siteKey,
+  onToken,
+  onReady,
+}: {
+  siteKey: string;
+  onToken: (token: string | null) => void;
+  onReady: (widgetId: string | null) => void;
+}) {
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const SCRIPT_ID = "cf-turnstile-script";
+    let widgetId: string | null = null;
+    let poll: ReturnType<typeof setInterval> | undefined;
+
+    const render = () => {
+      const api = getTurnstile();
+      if (!api || !boxRef.current) return;
+      widgetId = api.render(boxRef.current, {
+        sitekey: siteKey,
+        callback: (token) => onToken(token),
+        "expired-callback": () => onToken(null),
+        "error-callback": () => onToken(null),
+        theme: "auto",
+      });
+      onReady(widgetId);
+    };
+
+    if (getTurnstile()) {
+      render();
+    } else if (!document.getElementById(SCRIPT_ID)) {
+      const s = document.createElement("script");
+      s.id = SCRIPT_ID;
+      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+      s.async = true;
+      s.defer = true;
+      s.onload = render;
+      document.head.appendChild(s);
+    } else {
+      // Script tag present but the API hasn't attached yet — poll briefly.
+      poll = setInterval(() => {
+        if (getTurnstile()) {
+          if (poll) clearInterval(poll);
+          render();
+        }
+      }, 200);
+    }
+
+    return () => {
+      if (poll) clearInterval(poll);
+      const api = getTurnstile();
+      if (api && widgetId) api.remove(widgetId);
+      onReady(null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteKey]);
+
+  return <div ref={boxRef} />;
 }
 
 function Typing() {

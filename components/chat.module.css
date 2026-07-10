@@ -513,6 +513,11 @@ a.sourceTitle:hover {
 }
 
 /* ---- composer ---------------------------------------------------------- */
+.turnstile {
+  display: flex;
+  justify-content: center;
+  padding: 10px 14px 0;
+}
 .composer {
   display: flex;
   align-items: flex-end;
