@@ -56,4 +56,10 @@ export type StreamEvent =
 /** Request body for POST /api/chat. */
 export interface ChatRequest {
   question: string;
+  /**
+   * Cloudflare Turnstile token. Only required when TURNSTILE_SECRET_KEY is set
+   * on the server (and NEXT_PUBLIC_TURNSTILE_SITE_KEY on the client); omitted
+   * entirely when Turnstile is disabled.
+   */
+  turnstileToken?: string;
 }

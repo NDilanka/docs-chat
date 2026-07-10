@@ -10,7 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "ingest": "tsx scripts/ingest.ts",
-    "test:retrieval": "tsx scripts/test-retrieval.ts"
+    "test:retrieval": "tsx scripts/test-retrieval.ts",
+    "eval": "tsx scripts/eval-retrieval.ts"
   },
   "dependencies": {
     "@types/node": "^26.0.1",
