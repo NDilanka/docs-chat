@@ -128,6 +128,12 @@ export default function Chat() {
     async (raw: string) => {
       const question = raw.trim();
       if (!question || streaming) return;
+      if (TURNSTILE_SITE_KEY && !turnstileToken) {
+        // Turnstile is required but not solved yet — avoid a guaranteed 403
+        // round-trip and surface the same friendly notice the server would.
+        setToast("Please complete the verification and try again.");
+        return;
+      }
 
       const turnId = newId();
       setTurns((prev) => [
@@ -603,13 +609,24 @@ function Turnstile({
       s.onload = render;
       document.head.appendChild(s);
     } else {
-      // Script tag present but the API hasn't attached yet — poll briefly.
+      // Script tag present but the API hasn't attached yet — poll briefly,
+      // but bail after ~10s so a script that never attaches doesn't poll
+      // forever. Treat a timeout as the no-token state (same as expired/error).
+      const POLL_INTERVAL_MS = 200;
+      const POLL_TIMEOUT_MS = 10_000;
+      let elapsed = 0;
       poll = setInterval(() => {
         if (getTurnstile()) {
           if (poll) clearInterval(poll);
           render();
+          return;
         }
-      }, 200);
+        elapsed += POLL_INTERVAL_MS;
+        if (elapsed >= POLL_TIMEOUT_MS) {
+          if (poll) clearInterval(poll);
+          onToken(null);
+        }
+      }, POLL_INTERVAL_MS);
     }
 
     return () => {

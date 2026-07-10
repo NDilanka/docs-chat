@@ -55,7 +55,9 @@ const COOLING_DOWN: GuardVerdict = {
 /**
  * Check the global daily cap and the per-IP sliding window. A served request is
  * recorded against both counters only when it is allowed through, so a blocked
- * caller doesn't burn the global daily budget. Call this BEFORE doing any work.
+ * caller doesn't burn the global daily budget. Call this AFTER Turnstile
+ * verification (see runGuards) so a tokenless/failed request never reaches the
+ * daily counter either.
  */
 export function checkRateLimits(ip: string, now = Date.now()): GuardVerdict {
   // 1. Global daily cap (UTC-day kill-switch).
@@ -65,6 +67,18 @@ export function checkRateLimits(ip: string, now = Date.now()): GuardVerdict {
     daily.count = 0;
   }
   if (daily.count >= DAILY_CAP) return COOLING_DOWN;
+
+  // Opportunistic bound: ipHits is only pruned for the requesting IP on each
+  // call, so entries for IPs that never come back would otherwise linger
+  // forever. Once the map grows past 1000 keys, sweep out any entry whose
+  // timestamps are all outside the window. Keeps memory bounded without a
+  // background timer.
+  if (ipHits.size > 1000) {
+    const staleCutoff = now - WINDOW_MS;
+    for (const [key, hits] of ipHits) {
+      if (hits.every((t) => t <= staleCutoff)) ipHits.delete(key);
+    }
+  }
 
   // 2. Per-IP sliding window over the last WINDOW_MS.
   const cutoff = now - WINDOW_MS;
@@ -120,13 +134,17 @@ export async function verifyTurnstile(
 /**
  * Run all abuse guards for a request. Returns { ok: true } to proceed, or a
  * verdict carrying the HTTP status + JSON error/message to return to the client.
+ *
+ * Order matters: Turnstile verification runs first, then the per-IP/daily rate
+ * limits. This ensures a tokenless or failed-Turnstile request (403) never
+ * increments the daily counter — only requests that clear every guard do.
  */
 export async function runGuards(
   req: Request,
   turnstileToken: string | undefined,
 ): Promise<GuardVerdict> {
   const ip = clientIp(req);
-  const limited = checkRateLimits(ip);
-  if (!limited.ok) return limited;
-  return verifyTurnstile(turnstileToken, ip);
+  const turnstile = await verifyTurnstile(turnstileToken, ip);
+  if (!turnstile.ok) return turnstile;
+  return checkRateLimits(ip);
 }

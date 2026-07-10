@@ -146,7 +146,7 @@ before any embedding or generation call (`app/api/chat/route.ts`):
 
 ### Evaluating retrieval quality
 
-`npm run eval` scores retrieval against ~25 realistic questions in
+`npm run eval` scores retrieval against 27 realistic questions in
 `data/eval-questions.json`: it embeds each question, runs the same cosine top-k
 as the app, and reports **hit@1 / hit@5** with a per-question PASS/FAIL table,
 exiting non-zero if hit@5 drops below 80%. It needs `GEMINI_API_KEY` and a built
