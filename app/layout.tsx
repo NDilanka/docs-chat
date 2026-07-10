@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Chat with your docs — grounded RAG demo",
   description:
-    "A production-style RAG feature: streaming answers grounded in a fixed document set, with verifiable inline citations. Built with Next.js, Anthropic Claude, and OpenAI embeddings.",
+    "A production-style RAG feature: streaming answers grounded in a fixed document set, with clickable inline citations. Built with Next.js on free-tier APIs — OpenRouter generation and Google Gemini embeddings.",
 };
 
 export default function RootLayout({

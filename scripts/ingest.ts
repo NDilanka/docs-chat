@@ -1,5 +1,5 @@
-// Build-time ingestion: load docs/*.md → chunk → embed (OpenAI) → write data/index.json.
-// Run once with `npm run ingest` (needs OPENAI_API_KEY). Re-run to rebuild the index.
+// Build-time ingestion: load docs/*.md → chunk → embed (Gemini) → write data/index.json.
+// Run once with `npm run ingest` (needs GEMINI_API_KEY). Re-run to rebuild the index.
 //
 // Scripts use RELATIVE imports (not the @/ alias) because tsx does not read tsconfig paths.
 import { promises as fs } from "fs";
@@ -110,10 +110,11 @@ function chunkDoc(paras: Para[], source: string, url: string): Chunk[] {
 }
 
 async function main() {
-  if (!process.env.OPENAI_API_KEY) {
+  if (!process.env.GEMINI_API_KEY) {
     console.error(
-      "ERROR: OPENAI_API_KEY is not set. Copy .env.example to .env.local and add your key,\n" +
-        "then run again. (Embeddings come from OpenAI; Anthropic has no embeddings endpoint.)",
+      "ERROR: GEMINI_API_KEY is not set. Copy .env.example to .env.local and add your key,\n" +
+        "then run again. (Embeddings come from Google Gemini's free tier — get a key at\n" +
+        "https://aistudio.google.com/apikey. No credit card required.)",
     );
     process.exit(1);
   }

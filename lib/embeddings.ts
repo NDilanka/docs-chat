@@ -1,21 +1,25 @@
 import OpenAI from "openai";
-import { EMBED_MODEL } from "./config";
+import { EMBED_MODEL, GEMINI_BASE_URL } from "./config";
 
+// Embeddings come from Google Gemini's OpenAI-compatible endpoint (free tier).
 // Lazily constructed so importing this module (e.g. during `next build`) doesn't throw
-// when OPENAI_API_KEY is unset — the key is only needed when embeddings actually run.
+// when GEMINI_API_KEY is unset — the key is only needed when embeddings actually run.
 // Server-only — never import into a client component.
-let _openai: OpenAI | null = null;
-function openai(): OpenAI {
-  return (_openai ??= new OpenAI());
+let _gemini: OpenAI | null = null;
+function gemini(): OpenAI {
+  return (_gemini ??= new OpenAI({
+    baseURL: GEMINI_BASE_URL,
+    apiKey: process.env.GEMINI_API_KEY,
+  }));
 }
 
-/** Embed many texts, batched to stay under request limits. Order is preserved. */
+/** Embed many texts, batched to stay within free-tier request limits. Order is preserved. */
 export async function embedTexts(texts: string[]): Promise<number[][]> {
   const out: number[][] = [];
-  const BATCH = 100;
+  const BATCH = 32;
   for (let i = 0; i < texts.length; i += BATCH) {
     const batch = texts.slice(i, i + BATCH);
-    const res = await openai().embeddings.create({ model: EMBED_MODEL, input: batch });
+    const res = await gemini().embeddings.create({ model: EMBED_MODEL, input: batch });
     for (const d of res.data) out.push(d.embedding);
   }
   return out;
