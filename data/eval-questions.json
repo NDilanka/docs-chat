@@ -1,0 +1,110 @@
+[
+  {
+    "question": "What pricing plans does Tessera offer and how much do they cost?",
+    "expectedSources": ["billing-and-plans.md"]
+  },
+  {
+    "question": "How do I turn on two-factor authentication for my account?",
+    "expectedSources": ["two-factor-authentication.md", "account-and-security.md"]
+  },
+  {
+    "question": "Can I use SMS text messages for two-factor authentication?",
+    "expectedSources": ["two-factor-authentication.md"]
+  },
+  {
+    "question": "How many notes can I create on the free plan?",
+    "expectedSources": ["limits-and-quotas.md", "billing-and-plans.md"]
+  },
+  {
+    "question": "What is the maximum file size I can upload to a note?",
+    "expectedSources": ["limits-and-quotas.md", "notes-and-editor.md", "troubleshooting.md"]
+  },
+  {
+    "question": "How do I invite teammates to a shared space?",
+    "expectedSources": ["sharing-and-collaboration.md", "getting-started.md"]
+  },
+  {
+    "question": "What are the different permission roles and what can each one do?",
+    "expectedSources": ["sharing-and-collaboration.md", "comments-and-mentions.md"]
+  },
+  {
+    "question": "How do I export all of my data out of Tessera?",
+    "expectedSources": ["data-export-and-privacy.md"]
+  },
+  {
+    "question": "Does Tessera train AI models on my private notes?",
+    "expectedSources": ["data-export-and-privacy.md", "faq.md"]
+  },
+  {
+    "question": "How do I create a read-only public link to share a note with someone outside my team?",
+    "expectedSources": ["sharing-and-collaboration.md", "limits-and-quotas.md"]
+  },
+  {
+    "question": "How long is version history kept on each plan?",
+    "expectedSources": ["version-history.md", "billing-and-plans.md", "limits-and-quotas.md"]
+  },
+  {
+    "question": "How do I restore an older version of a note?",
+    "expectedSources": ["version-history.md"]
+  },
+  {
+    "question": "What keyboard shortcut opens the command palette?",
+    "expectedSources": ["keyboard-shortcuts.md", "getting-started.md"]
+  },
+  {
+    "question": "How do I find all tasks assigned to a particular person using search?",
+    "expectedSources": ["search.md"]
+  },
+  {
+    "question": "What search operators can I use to filter results?",
+    "expectedSources": ["search.md", "rest-api-reference.md"]
+  },
+  {
+    "question": "How do I connect Tessera to Slack?",
+    "expectedSources": ["integrations.md"]
+  },
+  {
+    "question": "Does the Google Calendar integration sync in both directions?",
+    "expectedSources": ["integrations.md"]
+  },
+  {
+    "question": "What is the REST API base URL and how do I authenticate my requests?",
+    "expectedSources": ["rest-api-reference.md"]
+  },
+  {
+    "question": "What are the API rate limits per plan?",
+    "expectedSources": ["rest-api-reference.md", "limits-and-quotas.md"]
+  },
+  {
+    "question": "How does offline mode work in the mobile apps?",
+    "expectedSources": ["mobile-apps.md", "faq.md"]
+  },
+  {
+    "question": "My notes aren't syncing — how do I fix it?",
+    "expectedSources": ["troubleshooting.md", "mobile-apps.md"]
+  },
+  {
+    "question": "How do I create a Kanban board and add tasks to it?",
+    "expectedSources": ["tasks-and-boards.md"]
+  },
+  {
+    "question": "Can I set up recurring tasks that repeat weekly?",
+    "expectedSources": ["tasks-and-boards.md"]
+  },
+  {
+    "question": "How do backlinks work and where do I see them?",
+    "expectedSources": ["links-and-backlinks.md"]
+  },
+  {
+    "question": "What is graph view and which plans include it?",
+    "expectedSources": ["links-and-backlinks.md", "billing-and-plans.md"]
+  },
+  {
+    "question": "How do I save my own note as a custom template?",
+    "expectedSources": ["templates.md"]
+  },
+  {
+    "question": "How do I set up email digests and quiet hours for notifications?",
+    "expectedSources": ["notifications-and-inbox.md"]
+  }
+]
