@@ -12,7 +12,7 @@ drop into an existing React/Next app. Swap the corpus, re-skin, ship.
 - **Grounded** — answers come only from the indexed docs.
 - **Cited** — every claim links to the source chunk it came from (click to jump).
 - **Streaming** — tokens render as they're generated.
-- **Free to run** — generation and embeddings both use **free-tier APIs, no credit card**.
+- **Cheap to run** — embeddings use a **free-tier API**; generation uses **Claude Haiku 4.5** via OpenRouter — a paid model, but cents at demo traffic.
 - **Serverless** — no vector DB, no Docker; one `next dev` process, a free Vercel deploy.
 
 ---
@@ -43,7 +43,7 @@ them through the one `openai` SDK — only the base URL and model string differ
 ### Runtime pipeline
 
 `ingest → chunk → embed (Gemini) → retrieve (cosine top-k) → ground + generate
-(a free OpenRouter model, cited with [n] markers) → stream → cite.`
+(Claude Haiku 4.5 via OpenRouter, cited with [n] markers) → stream → cite.`
 
 ### Grounding + citations
 
@@ -109,38 +109,62 @@ npm run dev
 #    → http://localhost:3000
 ```
 
-Useful scripts: `npm run typecheck`, `npm run test:retrieval`, `npm run build`.
+Useful scripts: `npm run typecheck`, `npm run test:retrieval`, `npm run eval`,
+`npm run build`.
 
-### The two API keys (both free, no credit card)
+### The two API keys
 
 This demo needs **two** keys, and they're separate things:
 
-- **`OPENROUTER_API_KEY`** — powers answer generation. [OpenRouter](https://openrouter.ai)
-  offers ~29 **free** models (the `:free` suffix); the default is
-  `nousresearch/hermes-3-llama-3.1-405b:free`. No card required. Free models are
-  rate-limited (~20 req/min, ~200 req/day) — plenty for a demo. Get a key at
-  [openrouter.ai/keys](https://openrouter.ai/keys).
+- **`OPENROUTER_API_KEY`** — powers answer generation with **Claude Haiku 4.5**
+  (`anthropic/claude-haiku-4.5`). This is a **paid** model (~$1 / $5 per million
+  input / output tokens), so the OpenRouter account needs a **few dollars of
+  credit** — a full grounded answer costs a fraction of a cent, so a few dollars
+  goes a long way, and that credit balance doubles as a hard spend cap. Get a key
+  at [openrouter.ai/keys](https://openrouter.ai/keys).
 - **`GEMINI_API_KEY`** — used **only for embeddings** (`gemini-embedding-001`).
   Google's [AI Studio](https://aistudio.google.com/apikey) free tier exposes an
-  OpenAI-compatible embeddings endpoint. No card required.
+  OpenAI-compatible embeddings endpoint. **Free, no card required.**
 
 Both keys are **server-only** environment variables — never shipped to the
 client, never logged, and `.env.local` is git-ignored.
+
+### Abuse guards (for a public demo)
+
+Because the demo is public and generation now costs credit, `lib/guards.ts` runs
+before any embedding or generation call (`app/api/chat/route.ts`):
+
+- **Per-IP rate limit** — 6 requests/minute (sliding window).
+- **Global daily cap** — 200 requests/UTC-day kill-switch.
+- Both are in-memory and **per-instance best-effort** on serverless; the real
+  backstop is the OpenRouter key's credit cap. On any limit the API returns a
+  friendly "cooling down" notice.
+- **Cloudflare Turnstile** — fully optional, env-gated. Set both
+  `TURNSTILE_SECRET_KEY` (server) and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (client)
+  to require a Turnstile token per request; leave them unset and Turnstile is
+  skipped entirely, widget and all.
+
+### Evaluating retrieval quality
+
+`npm run eval` scores retrieval against ~25 realistic questions in
+`data/eval-questions.json`: it embeds each question, runs the same cosine top-k
+as the app, and reports **hit@1 / hit@5** with a per-question PASS/FAIL table,
+exiting non-zero if hit@5 drops below 80%. It needs `GEMINI_API_KEY` and a built
+`data/index.json` (run `npm run ingest` first) and prints a clear message if
+either is missing. (The offline `npm run test:retrieval` needs no keys.)
 
 ### Swap the model in one line
 
 The generation model lives in a single constant — `lib/config.ts`:
 
 ```ts
-export const GEN_MODEL = "nousresearch/hermes-3-llama-3.1-405b:free"; // default: free Nous Hermes
-// swap to any free OpenRouter model, e.g.:
-//   "meta-llama/llama-3.3-70b-instruct:free"
-// or a paid one (with credits) for higher quality / no rate limits.
+export const GEN_MODEL = "anthropic/claude-haiku-4.5"; // default: Claude Haiku 4.5
+// swap to any OpenAI-compatible model, e.g. another OpenRouter model, or point
+// OPENROUTER_BASE_URL + GEN_MODEL at a native Anthropic/OpenAI endpoint.
 ```
 
-Change the string, nothing else — the route handler and UI are untouched. Free
-model IDs rotate; if one 404s, pick another at
-[openrouter.ai/collections/free-models](https://openrouter.ai/collections/free-models).
+Change the string (and the base URL, if you're switching provider) — the route
+handler and UI are untouched, because everything speaks the OpenAI wire format.
 
 ---
 
@@ -149,10 +173,12 @@ model IDs rotate; if one 404s, pick another at
 1. **Push** this repo to GitHub. (`data/index.json` is committed, so the deploy
    needs no build-time embedding.)
 2. **Import** the repo at [vercel.com/new](https://vercel.com/new).
-3. **Set the two env vars** — `OPENROUTER_API_KEY` and `GEMINI_API_KEY` — in
-   *Project → Settings → Environment Variables*.
+3. **Set the env vars** — `OPENROUTER_API_KEY` and `GEMINI_API_KEY` (and, if you
+   want the bot check, `TURNSTILE_SECRET_KEY` + `NEXT_PUBLIC_TURNSTILE_SITE_KEY`)
+   — in *Project → Settings → Environment Variables*.
 4. Deploy. You get a live URL where a stranger can ask a question and watch a
-   grounded, cited answer stream in — running entirely on free-tier APIs.
+   grounded, cited answer stream in — with the abuse guards keeping the
+   OpenRouter spend in check.
 
 ---
 
@@ -178,6 +204,6 @@ provider) is a base-URL + model-string change in `lib/config.ts`.
 
 ## Tech
 
-Next.js 16 (App Router) · React 19 · TypeScript · OpenRouter (free-tier
-generation) · Google Gemini (embeddings) · the `openai` SDK · plain CSS modules
+Next.js 16 (App Router) · React 19 · TypeScript · Claude Haiku 4.5 via OpenRouter
+(generation) · Google Gemini (embeddings) · the `openai` SDK · plain CSS modules
 · Vercel.
