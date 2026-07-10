@@ -13,10 +13,18 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+// @next/env is a CommonJS bundle; default-import + destructure so it works
+// under this package's ESM ("type": "module") resolution.
+import nextEnv from "@next/env";
 import { embedQuery } from "../lib/embeddings.js";
 import { cosineTopK } from "../lib/retrieval.js";
 import { TOP_K } from "../lib/config.js";
 import type { IndexEntry } from "../lib/types.js";
+
+// Load .env.local (and the other Next env files) so `npm run eval` picks up
+// GEMINI_API_KEY from .env.local, not just the shell.
+const { loadEnvConfig } = nextEnv;
+loadEnvConfig(process.cwd());
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
