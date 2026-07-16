@@ -17,6 +17,52 @@ export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
  */
 export const GEN_MODEL = "anthropic/claude-haiku-4.5";
 
+// --- Generation fallback: Gemini free tier ----------------------------------
+/**
+ * Free-tier generation model, used when OPENROUTER_API_KEY is absent so the app
+ * still answers at $0 (no credit card). Served through Gemini's OpenAI-compatible
+ * endpoint (GEMINI_BASE_URL below) with GEMINI_API_KEY. Streaming and the
+ * max_tokens cap both work over the compat layer. We use the `-latest` alias
+ * because the pinned `gemini-2.5-flash-lite` id currently 404s on the compat
+ * chat endpoint; `gemini-flash-lite-latest` always resolves to the current
+ * free flash-lite model. Free-tier limits are ~15 RPM / ~1,000 RPD.
+ */
+export const GEN_MODEL_FREE = "gemini-flash-lite-latest";
+
+/** Resolved generation provider (base URL + which key env to use + model). */
+export interface GenProvider {
+  baseURL: string;
+  apiKey: string | undefined;
+  model: string;
+}
+
+/**
+ * Pick the generation provider from the environment (evaluated per call, so it
+ * reflects runtime env, not build-time). Preference order:
+ *   1. OPENROUTER_API_KEY set → OpenRouter + Claude Haiku 4.5 (the paid default).
+ *   2. else GEMINI_API_KEY set → Gemini free tier + gemini-flash-lite-latest.
+ *   3. neither → OpenRouter shape with an undefined key, preserving the existing
+ *      "missing key" error path unchanged.
+ * Embeddings are untouched — they always use Gemini regardless of this choice.
+ */
+export function resolveGenProvider(): GenProvider {
+  if (process.env.OPENROUTER_API_KEY) {
+    return {
+      baseURL: OPENROUTER_BASE_URL,
+      apiKey: process.env.OPENROUTER_API_KEY,
+      model: GEN_MODEL,
+    };
+  }
+  if (process.env.GEMINI_API_KEY) {
+    return {
+      baseURL: GEMINI_BASE_URL,
+      apiKey: process.env.GEMINI_API_KEY,
+      model: GEN_MODEL_FREE,
+    };
+  }
+  return { baseURL: OPENROUTER_BASE_URL, apiKey: undefined, model: GEN_MODEL };
+}
+
 // --- Embeddings: Google Gemini (free tier, no credit card) ------------------
 // OpenRouter/Nous embeddings cost credits; Anthropic has no embeddings endpoint.
 // Gemini's free tier exposes an OpenAI-compatible embeddings endpoint.
