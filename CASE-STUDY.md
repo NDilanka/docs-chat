@@ -28,11 +28,13 @@ self-contained component on an otherwise ordinary Next.js 16 page:
 - **Retrieve.** Each question is embedded and scored against the index with a
   cosine top-k scan (sub-millisecond for a bounded corpus) inside a Next.js
   Route Handler.
-- **Ground & generate.** The retrieved chunks are passed to a free OpenRouter
-  model (Nous Hermes) as **numbered sources**, and the model cites each claim
-  inline with `[n]` markers. The route maps every `[n]` back to its source chunk,
-  so grounding is **model-agnostic** — it works with any OpenAI-compatible model
-  rather than one vendor's built-in citation feature.
+- **Ground & generate.** The retrieved chunks are passed to the generation model
+  as **numbered sources**, and the model cites each claim inline with `[n]`
+  markers. The route maps every `[n]` back to its source chunk, so grounding is
+  **model-agnostic** — it works with any OpenAI-compatible model rather than one
+  vendor's built-in citation feature. Generation defaults to Gemini's **free
+  tier** (`gemini-flash-lite-latest`) so the live demo runs at $0; setting
+  `OPENROUTER_API_KEY` swaps it to **Claude Haiku 4.5** with no other change.
 - **Stream & cite.** The route streams NDJSON (sources → text tokens →
   citations → done) to the browser. The UI renders tokens live and turns each
   citation into a numbered chip; clicking a chip scrolls to and highlights the
@@ -50,13 +52,19 @@ store, with the route handler and UI untouched.
   instead of a confident hallucination.
 - **Streaming** responses that feel like a real product, not a form submission.
 - A **drop-in feature** — visibly a panel inside a normal Next.js page — that
-  deploys to Vercel's free tier with two free-tier keys and runs at **$0, no
-  credit card** (free OpenRouter model + Gemini free embeddings).
+  deploys to Vercel's free tier and runs at **$0, no credit card**: Gemini's free
+  tier covers both embeddings and generation. (An optional `OPENROUTER_API_KEY`
+  upgrades generation to Claude Haiku 4.5, a paid model.)
+- **Measured (2026-07-16):** 27/27 hit@1 / hit@5 on the 27-question retrieval
+  eval (`npm run eval`); end-to-end generation median **1.77s at $0/query** on the
+  free Gemini path (vs **~3.1s at $0.0035/query** on the Claude Haiku 4.5
+  OpenRouter path).
 - A reusable template: the same repo becomes the starting point for paying
   engagements, where only the corpus and (optionally) the vector store change.
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · OpenRouter (free-tier
-generation, Nous Hermes) · Google Gemini (embeddings) · the `openai` SDK · plain
-CSS modules · Vercel.
+Next.js 16 (App Router) · React 19 · TypeScript · Google Gemini (embeddings +
+free-tier generation, `gemini-flash-lite-latest`) · Claude Haiku 4.5 via
+OpenRouter (optional paid generation) · the `openai` SDK · plain CSS modules ·
+Vercel.

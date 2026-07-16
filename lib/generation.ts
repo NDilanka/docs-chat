@@ -1,17 +1,19 @@
 import OpenAI from "openai";
-import { GEN_MODEL, MAX_ANSWER_TOKENS, OPENROUTER_BASE_URL } from "./config";
+import { MAX_ANSWER_TOKENS, resolveGenProvider } from "./config";
 import type { Retrieved, CitationRef } from "./types";
 
-// Generation runs on a free OpenRouter model via its OpenAI-compatible API.
+// Generation runs over an OpenAI-compatible API: OpenRouter + Claude Haiku 4.5
+// when OPENROUTER_API_KEY is set, else Gemini's free tier (see resolveGenProvider).
 // Lazily constructed so importing this module (e.g. during `next build`) doesn't throw
-// when OPENROUTER_API_KEY is unset — the key is only needed when a request runs.
-// Server-only. Reads OPENROUTER_API_KEY from the environment.
+// when no key is set — the key is only needed when a request runs.
+// Server-only. Reads OPENROUTER_API_KEY / GEMINI_API_KEY from the environment.
 let _client: OpenAI | null = null;
 function client(): OpenAI {
+  const { baseURL, apiKey } = resolveGenProvider();
   return (_client ??= new OpenAI({
-    baseURL: OPENROUTER_BASE_URL,
-    apiKey: process.env.OPENROUTER_API_KEY,
-    // Optional attribution headers OpenRouter uses for its rankings.
+    baseURL,
+    apiKey,
+    // Optional attribution headers OpenRouter uses for its rankings (Gemini ignores them).
     defaultHeaders: {
       "HTTP-Referer": "https://github.com/NDilanka/docs-chat",
       "X-Title": "Tessera docs-chat",
@@ -49,7 +51,7 @@ export async function* streamAnswer(
     .join("\n\n");
 
   const stream = await client().chat.completions.create({
-    model: GEN_MODEL,
+    model: resolveGenProvider().model,
     max_tokens: MAX_ANSWER_TOKENS,
     stream: true,
     messages: [
