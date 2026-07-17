@@ -1,24 +1,47 @@
+import type { ComponentType } from "react";
+import {
+  MessagesSquare,
+  FileInput,
+  Scissors,
+  Binary,
+  Search,
+  Sparkles,
+  Radio,
+  Quote,
+} from "lucide-react";
 import Chat from "@/components/Chat";
 
 // The page reads as a real product page. The chat is a single component
 // dropped into an otherwise ordinary Next.js page — that is the selling point.
 
-const PIPELINE: { step: string; detail: string }[] = [
-  { step: "Ingest", detail: "load the docs" },
-  { step: "Chunk", detail: "~600 tok, 80 overlap" },
-  { step: "Embed", detail: "Gemini embeddings" },
-  { step: "Retrieve", detail: "cosine top-k" },
-  { step: "Ground + generate", detail: "OpenRouter, cited [n]" },
-  { step: "Stream", detail: "tokens live" },
-  { step: "Cite", detail: "click → source" },
+type IconType = ComponentType<{ size?: number; strokeWidth?: number }>;
+
+const PIPELINE: { step: string; detail: string; Icon: IconType }[] = [
+  { step: "Ingest", detail: "load the docs", Icon: FileInput },
+  { step: "Chunk", detail: "~600 tok, 80 overlap", Icon: Scissors },
+  { step: "Embed", detail: "Gemini embeddings", Icon: Binary },
+  { step: "Retrieve", detail: "cosine top-k", Icon: Search },
+  { step: "Ground + generate", detail: "OpenRouter, cited [n]", Icon: Sparkles },
+  { step: "Stream", detail: "tokens live", Icon: Radio },
+  { step: "Cite", detail: "click → source", Icon: Quote },
 ];
 
 export default function Page() {
   return (
     <main className="page">
       <div className="pageInner">
+        <nav className="siteNav" aria-label="Primary">
+          <div className="nav-glass navInner">
+            <span className="navIcon" aria-hidden>
+              <MessagesSquare size={18} strokeWidth={1.8} />
+            </span>
+            <span className="navName">Docs assistant</span>
+            <span className="navTag">grounded RAG demo</span>
+          </div>
+        </nav>
+
         <header className="hero">
-          <span className="badge">
+          <span className="badge badge-blue heroBadge">
             <span className="badgeDot" aria-hidden />
             RAG demo · grounded &amp; cited
           </span>
@@ -32,20 +55,25 @@ export default function Page() {
         <Chat />
 
         <section className="how" aria-label="How it works">
-          <h2 className="howTitle">How it works</h2>
+          <div className="list-header">How it works</div>
           <p className="howLead">
             Everything below the chat is a normal Next.js page. The assistant is
             one self-contained React component, backed by a small retrieval +
             generation pipeline:
           </p>
 
-          <ol className="pipeline">
+          <ol className="list-inset pipeline">
             {PIPELINE.map((p, i) => (
-              <li className="pstep" key={p.step}>
-                <span className="pnum">{i + 1}</span>
+              <li className="list-row" key={p.step}>
+                <span className="pstepIcon" aria-hidden>
+                  <p.Icon size={17} strokeWidth={1.8} />
+                </span>
                 <span className="pbody">
                   <span className="pname">{p.step}</span>
                   <span className="pdetail">{p.detail}</span>
+                </span>
+                <span className="pnum" aria-hidden>
+                  {i + 1}
                 </span>
               </li>
             ))}

@@ -7,6 +7,7 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
+import { ArrowUp, Sparkles, ChevronDown, AlertCircle, X } from "lucide-react";
 import type { StreamEvent, SourceRef, CitationRef } from "@/lib/types";
 import styles from "./chat.module.css";
 
@@ -81,6 +82,21 @@ export default function Chat() {
   const threadRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Reduced-transparency: no CSS media query exists, so wire it once at the app
+  // root. The .reduce-transparency ancestor class makes every glass surface
+  // opaque and drops blur (see ios26.css).
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-transparency: reduce)");
+    const apply = () =>
+      document.documentElement.classList.toggle(
+        "reduce-transparency",
+        mq.matches,
+      );
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   // ---- update a single turn immutably -------------------------------------
   const patchTurn = useCallback(
@@ -364,7 +380,7 @@ export default function Chat() {
                 {/* answer */}
                 <div className={`${styles.row} ${styles.rowBot}`}>
                   <div className={styles.avatar} aria-hidden>
-                    AI
+                    <Sparkles size={16} strokeWidth={1.8} />
                   </div>
                   <div className={styles.botCol}>
                     <div
@@ -440,7 +456,7 @@ export default function Chat() {
                             }`}
                             aria-hidden
                           >
-                            ▾
+                            <ChevronDown size={15} strokeWidth={2} />
                           </span>
                           Sources
                           <span className={styles.sourcesCount}>
@@ -541,7 +557,7 @@ export default function Chat() {
           {streaming ? (
             <span className={styles.spinner} aria-hidden />
           ) : (
-            <SendIcon />
+            <ArrowUp size={20} strokeWidth={2.2} aria-hidden />
           )}
         </button>
       </div>
@@ -550,7 +566,7 @@ export default function Chat() {
       {toast && (
         <div className={styles.toast} role="alert">
           <span className={styles.toastIcon} aria-hidden>
-            !
+            <AlertCircle size={18} strokeWidth={2} />
           </span>
           <span className={styles.toastMsg}>{toast}</span>
           <button
@@ -559,7 +575,7 @@ export default function Chat() {
             onClick={() => setToast(null)}
             aria-label="Dismiss"
           >
-            ×
+            <X size={16} strokeWidth={2} aria-hidden />
           </button>
         </div>
       )}
@@ -651,25 +667,5 @@ function Typing() {
         <span className={styles.dot} />
       </span>
     </span>
-  );
-}
-
-function SendIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden
-    >
-      <path
-        d="M4 12L20 4L13 20L11 13L4 12Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }
