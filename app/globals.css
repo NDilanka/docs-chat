@@ -7,6 +7,10 @@
 /* ---- App accent -------------------------------------------------------- */
 :root {
   --tint: var(--system-blue);
+  /* App-local: a stronger secondary label for small text (<17px), where the
+     translucent --label-2 falls below WCAG AA. Not a redefinition of the
+     system token — --label-2 stays as-is for >=17px uses. */
+  --label-2-strong: color-mix(in srgb, var(--label-2) 60%, var(--label));
 }
 
 * {
@@ -86,7 +90,7 @@ a {
 .navTag {
   margin-left: var(--space-2);
   font: var(--weight-regular) var(--text-caption1) / 1 var(--font-system);
-  color: var(--label-2);
+  color: var(--label-2-strong);
 }
 
 /* ---- hero -------------------------------------------------------------- */
@@ -132,7 +136,7 @@ a {
 .howLead {
   margin: var(--space-1) 0 var(--space-5);
   max-width: 640px;
-  color: var(--label-2);
+  color: var(--label-2-strong);
   font: var(--weight-regular) var(--text-subhead) / var(--leading-subhead)
     var(--font-system);
   letter-spacing: var(--track-subhead);
@@ -173,7 +177,7 @@ a {
   font: var(--weight-regular) var(--text-footnote) / var(--leading-footnote)
     var(--font-system);
   letter-spacing: var(--track-footnote);
-  color: var(--label-2);
+  color: var(--label-2-strong);
 }
 
 .pnum {
@@ -186,7 +190,7 @@ a {
 .howNote {
   margin: var(--space-5) 0 0;
   padding: 0 var(--space-1);
-  color: var(--label-2);
+  color: var(--label-2-strong);
   font: var(--weight-regular) var(--text-footnote) / var(--leading-footnote)
     var(--font-system);
   letter-spacing: var(--track-footnote);

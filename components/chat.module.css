@@ -44,7 +44,7 @@
   margin-left: auto;
   font: var(--weight-regular) var(--text-caption1) / 1 var(--font-system);
   letter-spacing: var(--track-caption1);
-  color: var(--label-2);
+  color: var(--label-2-strong);
 }
 
 /* ---- scroll thread ----------------------------------------------------- */
@@ -71,8 +71,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  min-height: 100%;
   text-align: center;
-  padding: var(--space-7) var(--space-3) var(--space-2);
+  padding: var(--space-6) var(--space-3);
 }
 .emptyGlow {
   position: absolute;
@@ -97,7 +99,7 @@
 .emptySub {
   margin: 0 0 var(--space-6);
   max-width: 460px;
-  color: var(--label-2);
+  color: var(--label-2-strong);
   font: var(--weight-regular) var(--text-subhead) / var(--leading-subhead)
     var(--font-system);
   letter-spacing: var(--track-subhead);
@@ -211,7 +213,8 @@
 }
 .bubbleUser {
   max-width: 78%;
-  background: var(--tint);
+  /* Darkened tint so 17px white text clears WCAG AA (plain --tint is ~3.5:1). */
+  background: color-mix(in srgb, var(--tint) 85%, black);
   color: var(--tint-contrast);
   border-bottom-right-radius: 6px;
 }
@@ -257,7 +260,7 @@
   gap: var(--space-3);
 }
 .typingHint {
-  color: var(--label-2);
+  color: var(--label-2-strong);
   font: var(--weight-regular) var(--text-subhead) / 1 var(--font-system);
   letter-spacing: var(--track-subhead);
 }
@@ -302,7 +305,7 @@
 .chipsLabel {
   font: var(--weight-regular) var(--text-caption1) / 1 var(--font-system);
   letter-spacing: var(--track-caption1);
-  color: var(--label-2);
+  color: var(--label-2-strong);
   margin-right: 2px;
 }
 .chip {
@@ -316,7 +319,6 @@
   border: 0.5px solid var(--glass-border);
   background: rgb(var(--glass-surface) / var(--glass-opacity));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   box-shadow: inset 0 0.5px 0 var(--glass-specular);
   color: var(--label);
   font: var(--weight-medium) var(--text-footnote) / 1 var(--font-system);
@@ -334,7 +336,6 @@
 :global(.reduce-transparency) .chip {
   background: var(--fill);
   backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
 .chip:hover {
   filter: brightness(1.04);
@@ -355,7 +356,8 @@
   place-items: center;
   font: var(--weight-bold) var(--text-caption2) / 1 var(--font-system);
   color: var(--tint-contrast);
-  background: var(--tint);
+  /* Darkened tint so 11px white text clears WCAG AA (matches user bubble). */
+  background: color-mix(in srgb, var(--tint) 85%, black);
 }
 .chipSrc {
   white-space: nowrap;
@@ -435,7 +437,7 @@
 .sourcesCount {
   margin-left: auto;
   font: var(--weight-semibold) var(--text-caption1) / 1 var(--font-system);
-  color: var(--label-2);
+  color: var(--label-2-strong);
   background: var(--fill-3);
   border-radius: var(--radius-capsule);
   padding: 3px var(--space-2);
@@ -507,14 +509,14 @@ a.sourceTitle:hover {
 }
 .sourceCrumb {
   font: var(--weight-regular) var(--text-caption1) / 1 var(--font-system);
-  color: var(--label-2);
+  color: var(--label-2-strong);
 }
 .sourceText {
   margin: 0;
   font: var(--weight-regular) var(--text-footnote) / var(--leading-footnote)
     var(--font-system);
   letter-spacing: var(--track-footnote);
-  color: var(--label-2);
+  color: var(--label-2-strong);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   line-clamp: 3;
@@ -537,7 +539,6 @@ a.sourceTitle:hover {
   border-radius: var(--radius-card);
   background: rgb(var(--glass-surface) / var(--glass-opacity));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border: 0.5px solid var(--glass-border);
   box-shadow: inset 0 0.5px 0 var(--glass-specular), var(--glass-shadow);
 }
@@ -549,7 +550,6 @@ a.sourceTitle:hover {
 :global(.reduce-transparency) .composer {
   background: var(--bg-2);
   backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
 }
 .input {
   flex: 1;

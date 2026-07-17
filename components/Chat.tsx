@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import { ArrowUp, Sparkles, ChevronDown, AlertCircle, X } from "lucide-react";
 import type { StreamEvent, SourceRef, CitationRef } from "@/lib/types";
@@ -43,6 +44,19 @@ function newId(): string {
     return crypto.randomUUID();
   }
   return Math.random().toString(36).slice(2);
+}
+
+// Minimal, streaming-safe render transform: turn **bold** spans into <strong>.
+// Bold only — no other markdown. A dangling "**" (mid-stream) stays literal
+// until its closing pair arrives. Plain text otherwise, so it's XSS-safe.
+function renderAnswer(text: string): ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.length > 4 && part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
 }
 
 // Cloudflare Turnstile is fully env-gated: the widget only renders when a site
@@ -396,7 +410,7 @@ export default function Chat() {
                         </span>
                       ) : (
                         <>
-                          {turn.answer}
+                          {renderAnswer(turn.answer)}
                           {turn.status === "streaming" && (
                             <span className={styles.caret} aria-hidden />
                           )}
@@ -496,11 +510,12 @@ export default function Chat() {
                                           {s.source}
                                         </span>
                                       )}
-                                      {s.headingPath && (
-                                        <span className={styles.sourceCrumb}>
-                                          {s.headingPath}
-                                        </span>
-                                      )}
+                                      {s.headingPath &&
+                                        s.headingPath !== s.source && (
+                                          <span className={styles.sourceCrumb}>
+                                            {s.headingPath}
+                                          </span>
+                                        )}
                                     </div>
                                     <p className={styles.sourceText}>
                                       {s.text}
