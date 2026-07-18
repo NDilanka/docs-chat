@@ -76,19 +76,6 @@
   text-align: center;
   padding: var(--space-6) var(--space-3);
 }
-.emptyGlow {
-  position: absolute;
-  top: -24px;
-  width: 300px;
-  height: 200px;
-  background: radial-gradient(
-    closest-side,
-    color-mix(in srgb, var(--tint) 16%, transparent),
-    transparent
-  );
-  filter: blur(10px);
-  pointer-events: none;
-}
 .emptyTitle {
   margin: var(--space-2) 0 var(--space-2);
   font: var(--weight-bold) var(--text-title2) / var(--leading-title2)

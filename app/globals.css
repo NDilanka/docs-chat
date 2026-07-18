@@ -1,12 +1,12 @@
 /* Page chrome for app/page.tsx. Built ON TOP of the ios26.css design system
    (imported before this file in app/layout.tsx). Tokens/primitives live there
-   and are never redefined here — this file only sets the app accent and styles
-   the landing page's own layout. Both light + dark come for free from the
+   and are never redefined here — this file only styles the landing page's own
+   layout. The accent comes from the canonical ios26.css (unified petrol) and is
+   not overridden here. Both light + dark come for free from the
    system tokens (prefers-color-scheme). The chat card lives in chat.module.css. */
 
 /* ---- App accent -------------------------------------------------------- */
 :root {
-  --tint: var(--system-blue);
   /* App-local: a stronger secondary label for small text (<17px), where the
      translucent --label-2 falls below WCAG AA. Not a redefinition of the
      system token — --label-2 stays as-is for >=17px uses. */
@@ -42,17 +42,11 @@ a {
   position: relative;
   min-height: 100dvh;
   padding: var(--space-4) var(--space-5) 72px;
-  background:
-    radial-gradient(
-      1000px 520px at 50% -8%,
-      color-mix(in srgb, var(--tint) 14%, transparent),
-      transparent 62%
-    ),
-    radial-gradient(
-      760px 460px at 88% 6%,
-      color-mix(in srgb, var(--system-cyan) 8%, transparent),
-      transparent 58%
-    );
+  background: radial-gradient(
+    1000px 520px at 50% -8%,
+    color-mix(in srgb, var(--tint) 14%, transparent),
+    transparent 62%
+  );
 }
 
 .pageInner {
@@ -97,18 +91,6 @@ a {
 .hero {
   text-align: center;
   margin-bottom: var(--space-7);
-}
-
-.heroBadge {
-  margin-bottom: var(--space-4);
-}
-
-.badgeDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--tint);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tint) 18%, transparent);
 }
 
 .title {

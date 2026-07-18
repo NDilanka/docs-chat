@@ -251,7 +251,7 @@ export default function Chat() {
         );
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : "Something went wrong";
+          err instanceof Error ? err.message : "The answer didn't come through. Try again.";
         patchTurn(turnId, (t) => ({ ...t, status: "error", error: message }));
         setToast(message);
       } finally {
@@ -353,7 +353,6 @@ export default function Chat() {
       >
         {isEmpty ? (
           <div className={styles.empty}>
-            <div className={styles.emptyGlow} aria-hidden />
             <h2 className={styles.emptyTitle}>Ask the docs anything</h2>
             <p className={styles.emptySub}>
               Answers are grounded in the documentation and every claim links
@@ -406,7 +405,7 @@ export default function Chat() {
                         <Typing />
                       ) : turn.status === "error" ? (
                         <span className={styles.errText}>
-                          {turn.error ?? "Something went wrong."}
+                          {turn.error ?? "The answer didn't come through. Try again."}
                         </span>
                       ) : (
                         <>

@@ -1,5 +1,5 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Docs assistant">
-  <rect width="512" height="512" rx="114" fill="#0088FF"/>
+  <rect width="512" height="512" rx="114" fill="#0C6C7A"/>
   <g fill="none" stroke="#FFFFFF" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
     <path d="M144 128h224a40 40 0 0 1 40 40v152a40 40 0 0 1-40 40H236l-72 60v-60h-20a40 40 0 0 1-40-40V168a40 40 0 0 1 40-40Z"/>
     <path d="M180 210h152"/>
